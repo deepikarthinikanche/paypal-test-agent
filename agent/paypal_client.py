@@ -87,3 +87,22 @@ class PayPalClient:
             headers=self._headers(),
         )
         return self._check(resp)
+
+    def request(self, method, path, json=None, auth=True):
+        """Send a raw request and return (status_code, body). Never raises on 4xx/5xx.
+
+        auth=False sends a deliberately invalid token (used to test 401 handling).
+        """
+        if auth:
+            headers = self._headers()
+        else:
+            headers = {
+                "Authorization": "Bearer invalid_token_for_testing",
+                "Content-Type": "application/json",
+            }
+        resp = self._http.request(method, path, json=json, headers=headers)
+        try:
+            body = resp.json()
+        except ValueError:
+            body = resp.text
+        return resp.status_code, body

@@ -1,0 +1,200 @@
+{
+  "run_at": "2026-10-29T08:06:32.011808+00:00",
+  "passed": 11,
+  "total": 11,
+  "results": [
+    {
+      "id": "valid_order",
+      "name": "Create a valid order",
+      "description": "10.00 USD order with intent CAPTURE should be created.",
+      "expected_status": [
+        200,
+        201
+      ],
+      "actual_status": 201,
+      "passed": true,
+      "paypal_response": {},
+      "exception": null
+    },
+    {
+      "id": "get_order_after_create",
+      "name": "Fetch an order right after creating it",
+      "description": "A newly created order should be readable.",
+      "expected_status": [
+        200
+      ],
+      "actual_status": 200,
+      "passed": true,
+      "paypal_response": {},
+      "exception": null
+    },
+    {
+      "id": "zero_amount",
+      "name": "Order with zero amount",
+      "description": "A 0.00 USD order should be rejected.",
+      "expected_status": [
+        400,
+        422
+      ],
+      "actual_status": 422,
+      "passed": true,
+      "paypal_response": {
+        "error_name": "UNPROCESSABLE_ENTITY",
+        "message": "The requested action could not be performed, semantically incorrect, or failed business validation.",
+        "issues": [
+          "CANNOT_BE_ZERO_OR_NEGATIVE"
+        ]
+      },
+      "exception": null
+    },
+    {
+      "id": "negative_amount",
+      "name": "Order with negative amount",
+      "description": "A -5.00 USD order should be rejected.",
+      "expected_status": [
+        400,
+        422
+      ],
+      "actual_status": 422,
+      "passed": true,
+      "paypal_response": {
+        "error_name": "UNPROCESSABLE_ENTITY",
+        "message": "The requested action could not be performed, semantically incorrect, or failed business validation.",
+        "issues": [
+          "CANNOT_BE_ZERO_OR_NEGATIVE"
+        ]
+      },
+      "exception": null
+    },
+    {
+      "id": "bad_currency",
+      "name": "Order with an invalid currency code",
+      "description": "Currency code XYZ is not real and should be rejected.",
+      "expected_status": [
+        400,
+        422
+      ],
+      "actual_status": 422,
+      "passed": true,
+      "paypal_response": {
+        "error_name": "UNPROCESSABLE_ENTITY",
+        "message": "The requested action could not be performed, semantically incorrect, or failed business validation.",
+        "issues": [
+          "INVALID_CURRENCY_CODE"
+        ]
+      },
+      "exception": null
+    },
+    {
+      "id": "too_many_decimals",
+      "name": "Amount with too many decimal places",
+      "description": "10.999 USD has more precision than USD allows.",
+      "expected_status": [
+        400,
+        422
+      ],
+      "actual_status": 422,
+      "passed": true,
+      "paypal_response": {
+        "error_name": "UNPROCESSABLE_ENTITY",
+        "message": "The requested action could not be performed, semantically incorrect, or failed business validation.",
+        "issues": [
+          "DECIMAL_PRECISION"
+        ]
+      },
+      "exception": null
+    },
+    {
+      "id": "missing_intent",
+      "name": "Order with no intent",
+      "description": "The intent field is required and should be enforced.",
+      "expected_status": [
+        400,
+        422
+      ],
+      "actual_status": 400,
+      "passed": true,
+      "paypal_response": {
+        "error_name": "INVALID_REQUEST",
+        "message": "Request is not well-formed, syntactically incorrect, or violates schema.",
+        "issues": [
+          "MISSING_REQUIRED_PARAMETER"
+        ]
+      },
+      "exception": null
+    },
+    {
+      "id": "capture_unapproved",
+      "name": "Capture an order the buyer never approved",
+      "description": "Capturing before buyer approval must fail.",
+      "expected_status": [
+        400,
+        422
+      ],
+      "actual_status": 422,
+      "passed": true,
+      "paypal_response": {
+        "error_name": "UNPROCESSABLE_ENTITY",
+        "message": "The requested action could not be performed, semantically incorrect, or failed business validation.",
+        "issues": [
+          "ORDER_NOT_APPROVED"
+        ]
+      },
+      "exception": null
+    },
+    {
+      "id": "get_missing_order",
+      "name": "Fetch an order that does not exist",
+      "description": "A made-up order ID should return not found.",
+      "expected_status": [
+        400,
+        404
+      ],
+      "actual_status": 404,
+      "passed": true,
+      "paypal_response": {
+        "error_name": "RESOURCE_NOT_FOUND",
+        "message": "The specified resource does not exist.",
+        "issues": [
+          "INVALID_RESOURCE_ID"
+        ]
+      },
+      "exception": null
+    },
+    {
+      "id": "refund_missing_capture",
+      "name": "Refund a capture that does not exist",
+      "description": "Refunding a made-up capture ID should fail.",
+      "expected_status": [
+        400,
+        404
+      ],
+      "actual_status": 404,
+      "passed": true,
+      "paypal_response": {
+        "error_name": "RESOURCE_NOT_FOUND",
+        "message": "The specified resource does not exist.",
+        "issues": [
+          "INVALID_RESOURCE_ID"
+        ]
+      },
+      "exception": null
+    },
+    {
+      "id": "invalid_token",
+      "name": "Call the API with an invalid access token",
+      "description": "A bad token should return 401 Unauthorized.",
+      "expected_status": [
+        401
+      ],
+      "actual_status": 401,
+      "passed": true,
+      "paypal_response": {
+        "error_name": "invalid_token",
+        "message": "Token signature verification failed",
+        "issues": []
+      },
+      "exception": null
+    }
+  ]
+}
