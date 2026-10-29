@@ -61,3 +61,29 @@ class PayPalClient:
     def get_order(self, order_id):
         resp = self._http.get(f"/v2/checkout/orders/{order_id}", headers=self._headers())
         return self._check(resp)
+
+    def capture_order(self, order_id):
+        """Capture an order. The buyer must have approved it first."""
+        resp = self._http.post(
+            f"/v2/checkout/orders/{order_id}/capture",
+            json={},
+            headers=self._headers(),
+        )
+        return self._check(resp)
+
+    @staticmethod
+    def capture_id_from(order):
+        """Pull the capture ID out of a captured order response."""
+        return order["purchase_units"][0]["payments"]["captures"][0]["id"]
+
+    def refund_capture(self, capture_id, amount=None, currency="USD"):
+        """Refund a capture. Leave amount empty for a full refund."""
+        body = {}
+        if amount is not None:
+            body = {"amount": {"currency_code": currency, "value": amount}}
+        resp = self._http.post(
+            f"/v2/payments/captures/{capture_id}/refund",
+            json=body,
+            headers=self._headers(),
+        )
+        return self._check(resp)
