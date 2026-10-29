@@ -1,0 +1,62 @@
+{
+  "run_at": "2026-10-29T08:16:58.605821+00:00",
+  "bugs_enabled": true,
+  "passed": 2,
+  "total": 6,
+  "results": [
+    {
+      "id": "exact_amount_10_00",
+      "name": "Charge exactly 10.00 USD",
+      "description": "Baseline: a round amount.",
+      "expected": "PayPal order amount 10.00 USD",
+      "actual": "PayPal order amount 10.00 USD",
+      "passed": true,
+      "exception": null
+    },
+    {
+      "id": "exact_amount_19_99",
+      "name": "Charge exactly 19.99 USD",
+      "description": "Customer is charged the amount shown.",
+      "expected": "PayPal order amount 19.99 USD",
+      "actual": "PayPal order amount 19.98 USD",
+      "passed": false,
+      "exception": null
+    },
+    {
+      "id": "exact_amount_1_15",
+      "name": "Charge exactly 1.15 USD",
+      "description": "Another amount that is tricky for float math.",
+      "expected": "PayPal order amount 1.15 USD",
+      "actual": "PayPal order amount 1.14 USD",
+      "passed": false,
+      "exception": null
+    },
+    {
+      "id": "negative_amount",
+      "name": "Reject a negative amount",
+      "description": "Invalid input should give a clean 400.",
+      "expected": "HTTP 400 (clean client error)",
+      "actual": "HTTP 500: Internal Server Error",
+      "passed": false,
+      "exception": null
+    },
+    {
+      "id": "zero_amount",
+      "name": "Reject a zero amount",
+      "description": "Invalid input should give a clean 400.",
+      "expected": "HTTP 400 (clean client error)",
+      "actual": "HTTP 500: Internal Server Error",
+      "passed": false,
+      "exception": null
+    },
+    {
+      "id": "missing_amount",
+      "name": "Reject a request with no amount",
+      "description": "Missing fields should give 422.",
+      "expected": "HTTP 422 (missing field rejected)",
+      "actual": "HTTP 422",
+      "passed": true,
+      "exception": null
+    }
+  ]
+}
