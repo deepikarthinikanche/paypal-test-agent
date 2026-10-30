@@ -39,7 +39,7 @@ code { font-family: ui-monospace, Consolas, monospace; }
 </style></head>
 <body><main>
 <h1>PayPal Test Agent</h1>
-<p class="muted">Run at 2026-10-30T05:35:03.306905+00:00 &middot; store bugs ON</p>
+<p class="muted">Run at 2026-10-30T05:50:37.634673+00:00 &middot; store bugs ON</p>
 
 <section class="score">
   <div class="big bad">2 / 6</div>
@@ -47,24 +47,24 @@ code { font-family: ui-monospace, Consolas, monospace; }
 </section>
 
 <h2>AI analysis</h2>
-<p class="summary">The payment integration has two critical issues: incorrect calculation of payment amounts leading to undercharging customers, and a lack of proper input validation and error handling for invalid payment amounts, resulting in server errors.</p>
+<p class="summary">The payment integration incorrectly calculates transaction amounts due to floating-point precision issues and fails to handle invalid input gracefully, leading to incorrect charges and server errors.</p>
 <article class="card">
-  <div class="card-head"><h3>1. Incorrect payment amount due to floating-point precision errors</h3>
+  <div class="card-head"><h3>1. Incorrect Transaction Amount Due to Floating-Point Precision</h3>
   <span class="badge high">high</span></div>
   <p class="ids">Failed checks: exact_amount_19_99, exact_amount_1_15</p>
-  <h4>What happened</h4><p>The system charges customers 0.01 USD less than the displayed amount. For example, a 19.99 USD charge becomes 19.98 USD, and 1.15 USD becomes 1.14 USD.</p>
-  <h4>Likely cause</h4><p>The `format_amount` function, when bugs are enabled, uses `int(amount * 100)` to convert the amount to cents. This approach truncates floating-point numbers (e.g., 19.99 * 100 results in 1998.99999..., which `int()` converts to 1998), effectively rounding down and losing a cent.</p>
-  <h4>Suggested fix</h4><p>Use Python&#x27;s `Decimal` type for all monetary calculations to ensure exact precision and correct rounding. The `Decimal` type prevents floating-point inaccuracies that can lead to financial discrepancies.</p>
+  <h4>What happened</h4><p>The system charged customers 0.01 USD less than the expected amount (e.g., 19.98 USD instead of 19.99 USD, and 1.14 USD instead of 1.15 USD).</p>
+  <h4>Likely cause</h4><p>The `format_amount` function uses floating-point arithmetic (`amount * 100`) and then truncates the result to an integer (`int(...)`) before dividing by 100. This causes precision loss for amounts like 19.99, where `19.99 * 100` might result in `1998.99999...`, which `int()` truncates to `1998`, leading to a final charge of `19.98`.</p>
+  <h4>Suggested fix</h4><p>Use the `Decimal` type for all financial calculations to maintain precision and ensure correct rounding to the nearest cent, as demonstrated in the &#x27;fixed&#x27; branch of the `format_amount` function.</p>
   <pre><code>def format_amount(amount: float) -&gt; str:
     return str(Decimal(str(amount)).quantize(Decimal(&quot;0.01&quot;), rounding=ROUND_HALF_UP))</code></pre>
 </article>
 <article class="card">
-  <div class="card-head"><h3>2. Server crashes with 500 for invalid payment amounts</h3>
-  <span class="badge medium">medium</span></div>
+  <div class="card-head"><h3>2. Unhandled Invalid Input Leading to Internal Server Errors</h3>
+  <span class="badge high">high</span></div>
   <p class="ids">Failed checks: negative_amount, zero_amount</p>
-  <h4>What happened</h4><p>When attempting to process a negative or zero payment amount, the server responds with an HTTP 500 Internal Server Error instead of a clean HTTP 400 Bad Request. This exposes internal server details and provides a poor user experience.</p>
-  <h4>Likely cause</h4><p>The `/checkout` endpoint lacks explicit input validation for the `amount` field before calling the PayPal API. When PayPal rejects the invalid amount, the `PayPalError` is caught but then re-raised directly (due to `if BUGS: raise`), which FastAPI converts into a generic 500 error.</p>
-  <h4>Suggested fix</h4><p>Implement robust input validation at the API entry point to ensure the `amount` is positive before interacting with the payment provider. Additionally, catch specific payment provider errors and translate them into client-friendly HTTP 400 responses without exposing internal error details.</p>
+  <h4>What happened</h4><p>When attempting to process negative or zero amounts, the system returned an HTTP 500 Internal Server Error instead of a clean HTTP 400 Bad Request.</p>
+  <h4>Likely cause</h4><p>The `checkout` endpoint lacks explicit validation for non-positive amounts before attempting to create a PayPal order. Additionally, it re-raises `PayPalError` exceptions directly without converting them into a client-friendly HTTP 400 response, causing the application to crash with a 500 error when PayPal rejects the invalid amount.</p>
+  <h4>Suggested fix</h4><p>Implement pre-validation for the `amount` in the `checkout` endpoint to ensure it&#x27;s greater than zero, returning an HTTP 400 if not. Also, catch `PayPalError` exceptions and translate them into a generic HTTP 400 response to prevent internal details from leaking and provide a better user experience.</p>
   <pre><code>@app.post(&quot;/checkout&quot;)
 def checkout(req: CheckoutRequest):
     if req.amount &lt;= 0:
@@ -72,14 +72,9 @@ def checkout(req: CheckoutRequest):
 
     try:
         order = paypal.create_order(format_amount(req.amount), req.currency)
-    except PayPalError as e:
+    except PayPalError:
         raise HTTPException(status_code=400, detail=&quot;Payment provider rejected the request&quot;)
-
-    approve_url = next(
-        (l[&quot;href&quot;] for l in order.get(&quot;links&quot;, []) if l[&quot;rel&quot;] in (&quot;approve&quot;, &quot;payer-action&quot;)),
-        None,
-    )
-    return {&quot;order_id&quot;: order[&quot;id&quot;], &quot;status&quot;: order[&quot;status&quot;], &quot;approve_url&quot;: approve_url}</code></pre>
+    # ... rest of the function</code></pre>
 </article>
 
 <h2>All checks</h2>

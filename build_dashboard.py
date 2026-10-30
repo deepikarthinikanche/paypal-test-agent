@@ -29,7 +29,9 @@ def check_rows(results):
     return "\n".join(rows)
 
 
-def finding_cards(analysis):
+def finding_cards(analysis, all_ok=False):
+    if not analysis and all_ok:
+        return '<p class="muted">All checks passed, so there is nothing to analyze.</p>'
     if not analysis:
         return (
             '<p class="muted">No AI analysis yet. Run <code>python run_analyzer.py</code>, '
@@ -129,6 +131,9 @@ def main():
         with open(ANALYSIS, encoding="utf-8") as f:
             analysis = json.load(f)
 
+    if analysis and analysis.get("analyzed_run_at") != run.get("run_at"):
+        analysis = None  # stale: it explains an older test run
+
     summary = ""
     if analysis and analysis.get("summary"):
         summary = f'<p class="summary">{esc(analysis["summary"])}</p>'
@@ -141,7 +146,7 @@ def main():
         .replace("%%PASSED%%", esc(run["passed"]))
         .replace("%%TOTAL%%", esc(run["total"]))
         .replace("%%SUMMARY%%", summary)
-        .replace("%%FINDINGS%%", finding_cards(analysis))
+        .replace("%%FINDINGS%%", finding_cards(analysis, all_ok))
         .replace("%%ROWS%%", check_rows(run["results"]))
     )
     os.makedirs("results", exist_ok=True)

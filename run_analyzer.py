@@ -35,6 +35,7 @@ def main():
         print("Analysis failed:", e)
         return
 
+    analysis["analyzed_run_at"] = run.get("run_at")  # ties this analysis to one test run
     os.makedirs("results", exist_ok=True)
     with open("results/analysis.json", "w", encoding="utf-8") as f:
         json.dump(analysis, f, indent=2)
