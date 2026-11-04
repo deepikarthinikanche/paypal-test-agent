@@ -60,7 +60,7 @@ def finding_cards(analysis, all_ok=False):
 TEMPLATE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PayPal Test Agent: Results</title>
+<title>PayAudit AI: Results</title>
 <style>
 :root { --bg:#f7f8fa; --panel:#fff; --text:#16202a; --muted:#5b6b7a; --line:#dfe4ea;
   --good:#1a7f4b; --good-bg:#e3f4ea; --bad:#b3261e; --bad-bg:#fbe7e5;
@@ -97,7 +97,7 @@ tr:last-child td { border-bottom:0; }
 code { font-family: ui-monospace, Consolas, monospace; }
 </style></head>
 <body><main>
-<h1>PayPal Test Agent</h1>
+<h1>PayAudit AI</h1>
 <p class="muted">Run at %%RUN_AT%% &middot; store bugs %%BUGS%%</p>
 
 <section class="score">

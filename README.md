@@ -1,8 +1,10 @@
-# PayPal Test Agent
-An AI agent that tests a store's PayPal integration, catches real bugs by checking what PayPal actually received, and explains each failure in plain English with a suggested fix.
+# PayAudit AI
+
+PayAudit AI is an AI agent that audits a store's PayPal integration: catches real bugs by checking what PayPal actually received, and explains each failure in plain English with a suggested fix.
 
 Built for the PayPal AI Hackathon. Uses the PayPal Sandbox (no real money) and Google Gemini.
 
+**Live demo:** _(Render link added at submission)_  
 **Demo video:** _(link added at submission)_
 
 ## The problem
@@ -101,6 +103,21 @@ $env:DEMO_BUGS="off"
 uvicorn demo_store.app:app --port 8000
 ```
 
+## Live demo page
+
+A small web app runs the same checks in the browser: pick bugs on or off, press **Run checks**, and see the results in an AG Grid table, with Gemini's explanation below.
+
+```bash
+uvicorn web_app:app --port 8080
+```
+Then open http://127.0.0.1:8080. Repeat clicks within a minute reuse the last result, and Gemini explanations are cached, so the page cannot be used to burn through quotas.
+
+### Deploy to Render
+1. Push this repo to GitHub (it includes `render.yaml`).
+2. In Render, choose **New, Blueprint**, select the repo, and apply it.
+3. When prompted, enter `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET` (sandbox values) and `GEMINI_API_KEY`. They are stored in Render, never in the repo.
+4. Open the `onrender.com` URL once the deploy finishes. On the free plan the service sleeps when idle, so the first load can take up to a minute.
+
 ## Other scripts
 
 | Script | Purpose |
@@ -119,6 +136,8 @@ agent/              PayPal client, scenarios, Gemini analyzer
 demo_store/         FastAPI store with switchable bugs
 results/            generated results, report and dashboard
 run_demo.py         one-command demo
+web_app.py          live demo server (serves static/index.html)
+render.yaml         Render deployment config
 ```
 
 ## Notes

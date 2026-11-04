@@ -87,7 +87,7 @@ def explain_failures(failed_checks, source_code, call=call_model):
 
 def render_markdown(analysis, run_info):
     lines = [
-        "# PayPal Test Agent: Analysis Report",
+        "# PayAudit AI: Analysis Report",
         "",
         f"Run time: {run_info.get('run_at', 'unknown')}  ",
         f"Checks passed: {run_info.get('passed')} of {run_info.get('total')}",

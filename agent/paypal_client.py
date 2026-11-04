@@ -1,5 +1,6 @@
 """Minimal PayPal Sandbox client: auth + orders."""
 import os
+import time
 
 import httpx
 from dotenv import load_dotenv
@@ -23,6 +24,7 @@ class PayPalClient:
                 "Copy .env.example to .env and fill it in."
             )
         self._token = None
+        self._token_expiry = 0
         self._http = httpx.Client(base_url=SANDBOX_URL, timeout=30)
 
     @staticmethod
@@ -37,11 +39,14 @@ class PayPalClient:
             auth=(self.client_id, self.secret),
             data={"grant_type": "client_credentials"},
         )
-        self._token = self._check(resp)["access_token"]
+        data = self._check(resp)
+        self._token = data["access_token"]
+        # refresh a minute early so a long-running server never uses an expired token
+        self._token_expiry = time.time() + int(data.get("expires_in", 300)) - 60
         return self._token
 
     def _headers(self):
-        if not self._token:
+        if not self._token or time.time() >= self._token_expiry:
             self.get_token()
         return {
             "Authorization": f"Bearer {self._token}",

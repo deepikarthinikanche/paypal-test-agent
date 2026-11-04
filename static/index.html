@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PayAudit AI: live demo</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/styles/ag-grid.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/styles/ag-theme-quartz.min.css">
+<script src="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/dist/ag-grid-community.min.js"></script>
+<style>
+:root{--bg:#eef2f5;--paper:#fff;--ink:#14202b;--mute:#566574;--line:#d3dce3;--good:#0f7b5f;--goodbg:#dff2ea;--bad:#c8382b;--badbg:#fbe4e0;--hi:#1f5fbf;--warn:#8a5a00;--warnbg:#fdf1d8}
+@media (prefers-color-scheme:dark){:root{--bg:#10171d;--paper:#19222a;--ink:#e7edf2;--mute:#9bacb9;--line:#2b3742;--good:#58d0a5;--goodbg:#143a2e;--bad:#ff8f84;--badbg:#42201c;--hi:#8fb5f2;--warn:#f2c46b;--warnbg:#3a2e12}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:900px;margin:0 auto;padding:32px 20px 70px}
+h1{font:700 clamp(28px,5vw,40px)/1.15 "Iowan Old Style",Georgia,serif;margin:0 0 8px}
+h2{font:700 21px/1.2 "Iowan Old Style",Georgia,serif;margin:36px 0 12px}
+.lede{color:var(--mute);max-width:62ch;margin:0 0 22px}
+.muted{color:var(--mute);font-size:14px}
+code{font-family:ui-monospace,Consolas,monospace;font-size:.9em;background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--paper);color:var(--ink);padding:9px 14px;border-radius:7px}
+button:hover:not(:disabled){border-color:var(--hi)}
+button:disabled{opacity:.55;cursor:wait}
+button:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+#run{background:var(--hi);color:#fff;border-color:var(--hi);font-weight:600}
+.score{display:flex;align-items:baseline;gap:12px;margin:26px 0 8px}
+.score b{font:700 42px/1 ui-monospace,Consolas,monospace}
+.meter{height:10px;background:var(--line);border-radius:5px;overflow:hidden;margin-bottom:16px}
+.meter i{display:block;height:100%;width:0;transition:width .7s ease}
+#gridwrap{min-height:60px}
+.tag{display:inline-block;min-width:48px;text-align:center;padding:1px 8px;border-radius:99px;font-size:12px;font-weight:700}
+.tag.p{background:var(--goodbg);color:var(--good)}.tag.f{background:var(--badbg);color:var(--bad)}
+table.fb{width:100%;border-collapse:collapse;font-size:14px}table.fb td,table.fb th{padding:8px;border-bottom:1px solid var(--line);text-align:left}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:12px 0}
+.card h3{margin:0 0 4px;font-size:17px}.card h4{margin:12px 0 2px;font-size:12px;color:var(--mute);letter-spacing:.03em}
+.card p{margin:2px 0}.card pre{margin:10px 0 0;padding:10px 12px;background:var(--bg);border-radius:6px;overflow-x:auto;font-size:13px}
+.sev{float:right}.sev.high{background:var(--badbg);color:var(--bad)}.sev.medium{background:var(--warnbg);color:var(--warn)}.sev.low{background:var(--goodbg);color:var(--good)}
+.summary{border-left:4px solid var(--hi);background:var(--paper);padding:12px 14px;border-radius:6px}
+.err{color:var(--bad)}
+a{color:var(--hi)}
+</style></head>
+<body><main>
+<h1>PayAudit AI</h1>
+<p class="lede">An AI auditor for payment checkouts. A demo store charges customers through the PayPal Sandbox. This agent sends test checkouts, then asks PayPal what it actually received. If something is wrong, Gemini explains the cause and the fix.</p>
+
+<div class="bar">
+  <button id="on" aria-pressed="true">Store bugs: on</button>
+  <button id="off" aria-pressed="false">Store bugs: off (fixed)</button>
+  <button id="run">Run checks</button>
+  <span class="muted" id="status">Ready. Runs use the PayPal Sandbox only, with no real money.</span>
+</div>
+
+<div class="score"><b id="score">- / -</b><span>checks passed</span></div>
+<div class="meter"><i id="meter"></i></div>
+<div id="gridwrap"></div>
+
+<h2>AI explanation</h2>
+<div id="ai"><p class="muted">Run the checks with bugs on to see Gemini explain the failures.</p></div>
+
+<p class="muted" style="margin-top:40px">Sandbox only. The store and its bugs are a demo. Source code: <a href="https://github.com/deepikarthinikanche/paypal-test-agent">github.com/deepikarthinikanche/paypal-test-agent</a>. The first load can take up to a minute if the server was asleep.</p>
+</main>
+<script>
+var $ = function (id) { return document.getElementById(id); };
+var mode = 'on', gridApi = null;
+function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+
+async function post(path) {
+  var r = await fetch(path, { method: 'POST' });
+  var j = await r.json().catch(function () { return {}; });
+  if (!r.ok) throw new Error(j.detail || ('HTTP ' + r.status));
+  return j;
+}
+function setMode(m) {
+  mode = m;
+  $('on').setAttribute('aria-pressed', String(m === 'on'));
+  $('off').setAttribute('aria-pressed', String(m === 'off'));
+}
+$('on').onclick = function () { setMode('on'); };
+$('off').onclick = function () { setMode('off'); };
+
+function badge(p) { return '<span class="tag ' + (p ? 'p' : 'f') + '">' + (p ? 'PASS' : 'FAIL') + '</span>'; }
+
+function showGrid(rows) {
+  var wrap = $('gridwrap');
+  if (window.agGrid && agGrid.createGrid) {
+    if (gridApi) { gridApi.destroy(); gridApi = null; }
+    wrap.innerHTML = '';
+    var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    wrap.className = dark ? 'ag-theme-quartz-dark' : 'ag-theme-quartz';
+    gridApi = agGrid.createGrid(wrap, {
+      domLayout: 'autoHeight',
+      rowData: rows,
+      defaultColDef: { wrapText: true, autoHeight: true, resizable: true, sortable: true },
+      columnDefs: [
+        { headerName: 'Result', field: 'passed', width: 110, cellRenderer: function (p) { return badge(p.value); } },
+        { headerName: 'Check', field: 'name', flex: 1.3, minWidth: 180 },
+        { headerName: 'Expected', field: 'expected', flex: 1.2, minWidth: 170 },
+        { headerName: 'Actual', field: 'actual', flex: 1.4, minWidth: 190 },
+        { headerName: 'PayPal order', field: 'order_id', width: 170, valueFormatter: function (p) { return p.value || '-'; } }
+      ]
+    });
+  } else {
+    wrap.className = '';
+    wrap.innerHTML = '<table class="fb"><tr><th>Result</th><th>Check</th><th>Expected</th><th>Actual</th><th>PayPal order</th></tr>' +
+      rows.map(function (r) {
+        return '<tr><td>' + badge(r.passed) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.expected) + '</td><td>' + esc(r.actual) + '</td><td>' + esc(r.order_id || '-') + '</td></tr>';
+      }).join('') + '</table>';
+  }
+}
+
+function showAnalysis(a) {
+  var box = $('ai');
+  if (!a) { box.innerHTML = '<p class="muted">All checks passed, so there is nothing to explain.</p>'; return; }
+  var h = '<p class="summary">' + esc(a.summary) + '</p>';
+  (a.findings || []).forEach(function (f, i) {
+    var sev = String(f.severity || 'low').toLowerCase();
+    if (['high', 'medium', 'low'].indexOf(sev) < 0) sev = 'low';
+    h += '<div class="card"><span class="tag sev ' + sev + '">' + esc(sev) + '</span><h3>' + (i + 1) + '. ' + esc(f.title) + '</h3>' +
+      '<p class="muted">Failed checks: ' + esc((f.check_ids || []).join(', ')) + '</p>' +
+      '<h4>WHAT HAPPENED</h4><p>' + esc(f.what_happened) + '</p>' +
+      '<h4>LIKELY CAUSE</h4><p>' + esc(f.likely_cause) + '</p>' +
+      '<h4>SUGGESTED FIX</h4><p>' + esc(f.suggested_fix) + '</p>' +
+      (f.code_fix ? '<pre><code>' + esc(String(f.code_fix).trim()) + '</code></pre>' : '') + '</div>';
+  });
+  box.innerHTML = h;
+}
+
+async function run() {
+  var btn = $('run');
+  btn.disabled = true;
+  $('status').className = 'muted';
+  $('status').textContent = 'Running checks against the PayPal Sandbox (about 10 seconds)...';
+  $('ai').innerHTML = '';
+  try {
+    var res = await post('/api/run?bugs=' + mode);
+    $('score').textContent = res.passed + ' / ' + res.total;
+    $('score').style.color = res.passed === res.total ? 'var(--good)' : 'var(--bad)';
+    $('meter').style.background = res.passed === res.total ? 'var(--good)' : 'var(--bad)';
+    $('meter').style.width = (res.passed / res.total * 100) + '%';
+    showGrid(res.results);
+    $('status').textContent = 'Done' + (res.cached ? ' (showing a result from the last minute)' : '') + '. Store bugs were ' + (res.bugs_enabled ? 'on' : 'off') + '.';
+    if (res.passed < res.total) {
+      $('ai').innerHTML = '<p class="muted">Asking Gemini to explain the failures...</p>';
+      var ex = await post('/api/explain?bugs=' + mode);
+      showAnalysis(ex.analysis);
+    } else {
+      showAnalysis(null);
+    }
+  } catch (e) {
+    $('status').className = 'err';
+    $('status').textContent = e.message;
+    if ($('ai').innerHTML.indexOf('Asking Gemini') >= 0) $('ai').innerHTML = '';
+  }
+  btn.disabled = false;
+}
+$('run').onclick = run;
+</script></body></html>
