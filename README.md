@@ -5,7 +5,7 @@ PayAudit AI is an AI agent that audits a store's PayPal integration. It catches 
 Built for the PayPal AI Hackathon. Uses the PayPal Sandbox (no real money) and Google Gemini.
 
 **Live demo:** https://payaudit-ai.onrender.com (no setup needed: open it and click **Run checks**)  
-**Demo video:** _(YouTube link added at submission)_  
+**Demo video:** [Watch the PayAudit AI demo on YouTube](https://youtu.be/2197nXnNKew)  
 **Source code:** https://github.com/deepikarthinikanche/paypal-test-agent
 
 > The live demo runs on a free Render plan, so the first load can take up to a minute while the server wakes up.
