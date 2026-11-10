@@ -55,7 +55,7 @@ def build_checks(paypal):
          lambda: check_amount(paypal, 10.00)),
         ("exact_amount_19_99", "Charge exactly 19.99 USD", "Customer is charged the amount shown.",
          lambda: check_amount(paypal, 19.99)),
-        ("exact_amount_1_15", "Charge exactly 1.15 USD", "Another amount that is tricky for float math.",
+        ("exact_amount_1_15", "Charge exactly 1.15 USD", "A second amount with cents.",
          lambda: check_amount(paypal, 1.15)),
         ("negative_amount", "Reject a negative amount", "Invalid input should give a clean 400.",
          lambda: check_rejects(-5.00)),

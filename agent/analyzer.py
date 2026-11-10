@@ -44,12 +44,16 @@ def call_model(prompt):
         raise RuntimeError(
             "Missing GEMINI_API_KEY. Add it to your .env file (get one at aistudio.google.com)."
         )
-    client = genai.Client(api_key=key)
+    # Pin the API version, and put the instructions inside the prompt itself instead of
+    # a separate system instruction (some API versions reject system instructions).
+    client = genai.Client(
+        api_key=key,
+        http_options=types.HttpOptions(api_version="v1beta"),
+    )
     response = client.models.generate_content(
         model=os.getenv("GEMINI_MODEL", DEFAULT_MODEL),
-        contents=prompt,
+        contents=SYSTEM_PROMPT + "\n\n" + prompt,
         config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
             response_mime_type="application/json",
             temperature=0.2,
         ),
